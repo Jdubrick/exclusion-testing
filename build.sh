@@ -16,17 +16,10 @@
 
 buildToolsFolder="$(dirname "$0")"
 buildToolsDir="$PWD"
-generatorFolder=$buildToolsFolder/../index/generator
 
 display_usage() { 
   echo "usage: build.sh <path-to-registry-repository-folder> <output-dir>" 
 } 
-
-# cleanup_and_exit removes the build folder and exits with the exit code passed into it
-cleanup_and_exit() {
-  rm -rf $outputFolder
-  exit $1
-}
 
 tar_files_and_cleanup() {
   # Find the files to add to the tar archive
@@ -56,19 +49,6 @@ build_registry() {
   # Copy the registry repository over to the destination folder
   cp -rf $registryRepository/. $outputFolder/
 
-  cd $generatorFolder
-
-  # Build the index generator/validator
-  echo "Building index-generator tool"
-  bash ./build.sh
-  if [ $? -ne 0 ]; then
-    echo "Failed to build index-generator tool"
-    return 1
-  fi
-  echo "Successfully built the index-generator tool"
-
-  cd "$OLDPWD"
-
   # Generate the tar archive
   for stackDir in $outputFolder/stacks/*
   do
@@ -77,6 +57,7 @@ build_registry() {
       for versionDir in $stackDir/*
       do
         if [[ -d "${versionDir}" ]]; then
+          echo "version dir is ${versionDir}"
           cd $versionDir
           tar_files_and_cleanup
         fi
@@ -88,64 +69,9 @@ build_registry() {
   done
   cd "$buildToolsDir"
 
-  # Cache any devfile samples if needed
-  if [ -f $registryRepository/extraDevfileEntries.yaml ]; then
-    mkdir $outputFolder/samples
-    bash $buildToolsFolder/cache_samples.sh $registryRepository/extraDevfileEntries.yaml $outputFolder/samples
-    if [ $? -ne 0 ]; then
-      echo "Error caching the devfile samples"
-      exit 1;
-    fi
-  fi
-
-  # Run the index generator tool
-  echo "Generating the devfile registry index"
-  $generatorFolder/index-generator $outputFolder $outputFolder/index.json
-  if [ $? -ne 0 ]; then
-    echo "Failed to build the devfile registry index"
-    return 1
-  fi
-  echo "Successfully built the devfile registry index"
 }
-
-# check_params validates that the arguments passed into the script are valid
-# The first parameter must point to a valid devfile registry folder, containing a stacks folder
-# The second parameter must point to an empty output folder, or a folder that does not yet exist.
-check_params() {
-  # If the output folder does not have a stacks folder, we cannot do the build, so exit out
-  if [ ! -d "$registryRepository/stacks" ]; then
-    echo "A valid devfile registry was not passed in. Please specify a devfile registry folder scontaining a stacks folder."
-    display_usage
-    exit 1
-  fi
-
-  # If the output registry folder does not exist, create it.
-  if [ ! -d $outputFolder ]; then
-    mkdir -p $outputFolder
-  fi
-
-  # If the speicifed output folder is not empty, exit.
-  if [ ! -z "$(ls -A $outputFolder)" ]; then
-    echo "The specified destination folder is not empty. Please specify an empty folder."
-    display_usage
-    exit 1
-  fi
-}
-
-# Check if a registry repository folder and a output folder were passed in, if not, exit
-if [ $# -ne 2 ]; then
-  display_usage
-  exit 1
-fi
 registryRepository=$1
 outputFolder=$2
 
-# Validate the script parameters
-check_params
-
 # Build the registry
 build_registry
-if [ $? -ne 0 ]; then
-  echo "Error building the devfile registry"
-  cleanup_and_exit 1
-fi
