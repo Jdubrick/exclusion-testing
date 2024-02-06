@@ -15,14 +15,14 @@ tar_files_and_cleanup() {
     rm -rf $tarFiles
   fi
 } 
- 
+main(){
 # Generate the tar archive
-  for stackDir in $outputFolder/stacks/*; do
+  for stackDir in stacks/*; do
   if [[ -d "${stackDir}" ]]; then
     cd $stackDir
     if [[ -f "stack.yaml" ]]; then
-      for versionDir in $stackDir/*
-      do
+      for versionDir in * ; do
+        echo $versionDir
         if [[ -d "${versionDir}" ]]; then
           cd $versionDir
           tar_files_and_cleanup
@@ -34,5 +34,8 @@ tar_files_and_cleanup() {
     cd "$OLDPWD"
   fi
   done
+  echo $OLDPWD
+}
+main
 
 
