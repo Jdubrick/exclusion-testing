@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 buildToolsFolder="$(dirname "$0")"
 buildToolsDir="$PWD"
 
@@ -49,15 +48,14 @@ build_registry() {
   # Copy the registry repository over to the destination folder
   cp -rf $registryRepository/. $outputFolder/
 
+  echo $outputFolder
   # Generate the tar archive
-  for stackDir in $outputFolder/stacks/*
-  do
-    cd $stackDir
+  for stackDir in $outputFolder/stacks/*; do
+  if [[ -d "$stackDir" ]]; then
+    cd "$stackDir"
     if [[ -f "stack.yaml" ]]; then
-      for versionDir in $stackDir/*
-      do
-        if [[ -d "${versionDir}" ]]; then
-          echo "version dir is ${versionDir}"
+      for versionDir in "$stackDir"/*; do
+        if [[ -d "$versionDir" ]]; then
           cd $versionDir
           tar_files_and_cleanup
         fi
@@ -66,9 +64,9 @@ build_registry() {
       tar_files_and_cleanup
     fi
     cd "$OLDPWD"
+  fi
   done
   cd "$buildToolsDir"
-
 }
 registryRepository=$1
 outputFolder=$2
